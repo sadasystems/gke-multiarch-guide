@@ -76,7 +76,7 @@ undivert({{scripts/deploy_app.sh}})
 
 ### Examining our Deployment
 
-uh oh, errors
+Our application has been deployed, let's check on it:
 
 ```
 $ kubectl get pod  -o wide
@@ -92,6 +92,8 @@ envspitter-899c74bd9-prjfv   0/1     CrashLoopBackOff   1 (4s ago)   8s    10.76
 envspitter-899c74bd9-qtd4n   1/1     Running            0            8s    10.76.1.9   gke-multiarch-default-pool-7efc8129-9lw5   <none>           <none>
 envspitter-899c74bd9-rjq7w   0/1     CrashLoopBackOff   1 (5s ago)   8s    10.76.4.5   gke-multiarch-arm-9afe67fe-hkn9            <none>           <none>
 ```
+
+Looks like many of the pods are in a bad state.
 
 Pick a pod from the deployment and examine the logs.
 
