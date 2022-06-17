@@ -233,7 +233,7 @@ envspitter-75cd4bdd68-zv24x   1/1     Running   0          10s   10.76.5.6    gk
 
 ## Conclusions 
 
-The lower cost of ARM processers on GCP offers an opportunity to reduce compute costs while maintaining performance for many workloads. The main challenge is the availability of software built for ARM. While most official Docker images have support for multiple architectures, you may find gaps. Using Kubernetes provides a way to save money where possible, and maintain compatibility where it's not. The increasing popularity of ARM and Docker's buildx toolkit will make it increasingly rare o encounter a workload which needs any special consideration at all. Those same tools will also enable your own applications to use ARM where it makes sense.
+The lower cost of ARM processers on GCP offers an opportunity to reduce compute costs while maintaining performance for many workloads. The main challenge is the availability of software built for ARM. While most official Docker images have support for multiple architectures, you may find gaps. Using Kubernetes provides a way to save money where possible, and maintain compatibility where it's not. The increasing popularity of ARM and Docker's buildx toolkit will make it increasingly rare to encounter a workload which needs any special consideration at all. Those same tools will also enable your own applications to use ARM where it makes sense.
 
 Compatiblity aside, you may find some workloads work faster on arm64 or x86_64, in which case Kubernetes offers simple semantics for making sure those workloads run where they are most performant.
 
