@@ -1,7 +1,5 @@
 FROM golang:1.18.1 as builder
 
-#ARG TARGETOS TARGETARCH
-
 ENV PORT 8080
 ENV MESSAGE Hello World
 

@@ -1,11 +1,25 @@
-changequote(`{{', `}}')
+
 # Working with ARM64 Machines on Google Kubernetes Engine
 
 Google has recently announced their ARM CPU machines types (t2a). Kubernetes has had support for ARM machines for some time(as evidenced by the myriad Pi clusters out there), however running a mixed architexture cluster can pose some challenges.
 
 This guide will cover how to run CPU-specific workloads on mixed clusters, and an example of how to make workloads CPU-agnostic.
 
-undivert({{toc.md}})
+
+Table of Contents
+=================
+
+  * [Prerequisites](#prerequisites)
+  * [Provisioning a Kubernetes Cluster](#provisioning-a-kubernetes-cluster)
+  * [Building and Deploying our App](#building-and-deploying-our-app)
+    * [Examining our Deployment](#examining-our-deployment)
+    * [Fixing the Deployment](#fixing-the-deployment)
+  * [Multiarch Builds](#multiarch-builds)
+    * [Submit a Build](#submit-a-build)
+  * [Conclusions](#conclusions)
+  * [Further Reading](#further-reading)
+
+
 
 ## Prerequisites
 
@@ -28,13 +42,21 @@ This guide also assumes:
 First we'll provision a Google Kubernetes Engine (GKE) cluster:
 
 ```bash
-undivert({{scripts/create_cluster.sh}})
+# Create a basic GKE cluster with 3 nodes.
+gcloud container clusters create multiarch --machine-type=n1-standard-4 --num-nodes=3 --no-enable-shielded-nodes --cluster-version=1.23.6-gke.1700
+
 ```
 
 Next we'll add a node pool of `t2a-standard-4` machines, Google's ARM offering.
 
 ```bash
-undivert({{scripts/create_nodepool.sh}})
+# Add a node pool to our cluster. t2a machines only support Google Virtual NIC
+gcloud container node-pools create arm --cluster=multiarch \
+                                        --machine-type=t2a-standard-4 \
+                                        --enable-gvnic \
+                                        --num-nodes=3 \
+                                        --node-version=1.23.6-gke.1700
+
 ```
 
 Let's check on our nodes:
@@ -59,19 +81,31 @@ We need something to run on our cluster, so let's build our demo app and push it
 We'll need somewhere to host our image, so let's create a new Artifact Repository.
 
 ```bash
-undivert({{scripts/create_repository.sh}})
+# Create a Docker Artifact Repository in the US region.
+gcloud artifacts repositories create envspitter --repository-format=docker --location=us
+
 ```
 
 Now we build and push our Docker image:
 
 ```bash
-undivert({{scripts/build_docker_image.sh}})
+# Build the docker image
+docker build . -t us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:${TAG_NAME}
+
+# Push the docker image
+docker push  us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:${TAG_NAME}
+
 ```
 
 With our image pushed, we can now deploy it to our GKE cluster.
 
 ```bash
-undivert({{scripts/deploy_app.sh}})
+# Create a Deployment for our app
+envsubst < k8s-objects/envspitter-dp.yaml | kubectl apply -f -
+
+# Create a Loadbalancer service for our app
+kubectl apply -f k8s-objects/envspitter-svc.yaml
+
 ```
 
 ### Examining our Deployment
@@ -107,13 +141,23 @@ It turns out our local machine didn't quite match the architecture of some of ou
 A quick fix would be to make our app only run on compatible machines. Fortunately the nodes are labeled with their CPU architecture, so we can use a simple node selector to restrict pods to compatible nodes:
 
 ```yaml
-undivert({{k8s-objects/envspitter-dp-patch-x86_64.yaml}})
+spec:
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: amd64
+
 ```
 
 Let's patch the deployment with the appropriate snippet.
 
 ```bash
-undivert({{scripts/patch_deployment.sh}})
+# Detect system architecture
+export SYSTEM_ARCH=$(uname -m)
+
+# Patch deployment to only run on your local machine's architecture
+kubectl patch deployment envspitter --patch-file=k8s-objects/envspitter-dp-patch-${SYSTEM_ARCH}.yaml
+
 ```
 
 Now let's check on our Pods.
@@ -143,7 +187,9 @@ Docker images are actually a manifest that can consist of one or more images. If
 We previously created our container registry, so now we just need to submit our build with the included [cloudbuild.yaml](cloudbuild.yaml)
 
 ```bash
-undivert({{scripts/submit_build.sh}})
+# Submit our multiarch build to Cloud Build with a specific tag.
+gcloud builds submit --substitutions TAG_NAME=1.1
+
 ```
 
 After the build completes, there should be images for amd64 and arm64 in the manifest for the envspitter:1.1 image.
@@ -153,13 +199,17 @@ After the build completes, there should be images for amd64 and arm64 in the man
 Let's update our Deployment with the new image.
 
 ```bash
-undivert({{scripts/update_deployment_image.sh}})
+# Update the container image in our deployment to 1.1
+kubectl set image deployment/envspitter envspitter=us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:1.1
+
 ```
 
 While the deployment has a new image that is compatible with both arm64 and amd64, we still have a node restriction in place. We must remove the node selector to get pods to schedule everywhere.
 
 ```bash
-undivert({{scripts/unpatch_deployment.sh}})
+# Patch deployment to remove nodeselector 
+kubectl patch deployment envspitter --patch-file=k8s-objects/envspitter-dp-patch-noselector.yaml
+
 ```
 
 Our pods should now be scheduled across all nodes.
