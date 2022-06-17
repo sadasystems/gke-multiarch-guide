@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: envspitter
+spec:
+  selector:
+    matchLabels:
+      app: envspitter
+  replicas: 10
+  template:
+    metadata:
+      labels:
+        app: envspitter
+    spec:
+      containers:
+      - name: envspitter
+        image: us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:${TAG_NAME} 
+        env:
+        - name: PORT
+          value: "80"
+        - name: MESSAGE
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        resources:
+          limits:
+            memory: "50Mi"
+            cpu: "1" 
+          requests:
+            memory: "50Mi"
+            cpu: "1" 

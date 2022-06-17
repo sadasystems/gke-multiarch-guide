@@ -4,6 +4,7 @@ import (
     "fmt"
     "os"
     "net/http"
+    "runtime"
 )
 
 func main() {
@@ -14,6 +15,7 @@ func main() {
 
 func HelloServer(w http.ResponseWriter, r *http.Request) {
     message := os.Getenv("MESSAGE")
+    architecture := runtime.GOARCH
     fmt.Fprintf(w, "%s %s", message, r.URL.Path[1:])
+    fmt.Fprintf(w, architecture)
 }
-
