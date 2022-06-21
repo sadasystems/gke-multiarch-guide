@@ -1,10 +1,11 @@
 changequote(`{{', `}}')
 # Working with ARM64 Machines on Google Kubernetes Engine
 
-Google has recently announced their ARM CPU machines types (t2a). Kubernetes has had support for ARM machines for some time(as evidenced by the myriad Pi clusters out there), however running a mixed architexture cluster can pose some challenges.
+Google has recently [announced](http://cloud.google.com/blog) their ARM CPU machines types. Kubernetes has had support for ARM machines for some time(as evidenced by the [proliferation](https://www.google.com/search?as_q=kubernetes+raspberry+pi+cluster&tbm=isch) of Raspberry Pi clusters), however running a mixed architexture cluster can pose some challenges.
 
 This guide will cover how to run CPU-specific workloads on mixed clusters, and an example of how to make workloads CPU-agnostic.
 
+## Table of Contents
 undivert({{toc.md}})
 
 ## Prerequisites
@@ -13,7 +14,6 @@ The following utilities need to be installed to run through this guide:
 
 1. Install [`gcloud`](https://cloud.google.com/sdk/docs/downloads-interactive#mac)
 1. Configure `gcloud`: Run `gcloud init` and follow its prompts to configure the target GCP Project, region and other settings
-1. Download Kubernetes CLI, [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/) (if not already installed by gcloud)
 1. Install [Docker](https://www.docker.com/products/docker-desktop)
 1. Install [envsubst](https://www.gnu.org/software/gettext/manual/html_node/envsubst-Invocation.html), typically via the gettext package, `brew install gettext` or `apt-get install gettext`
 
@@ -31,7 +31,7 @@ First we'll provision a Google Kubernetes Engine (GKE) cluster:
 undivert({{scripts/create_cluster.sh}})
 ```
 
-Next we'll add a node pool of `t2a-standard-4` machines, Google's ARM offering.
+Next we'll add a node pool of `t2a-standard-4` machines(t2a is Google's ARM offering).
 
 ```bash
 undivert({{scripts/create_nodepool.sh}})
@@ -54,9 +54,9 @@ Our cluster is up and ready for use!
 
 ## Building and Deploying our App
 
-We need something to run on our cluster, so let's build our demo app and push it to our repo.
+We need something to run on our cluster, so let's build a demo app and push it to a repo.
 
-We'll need somewhere to host our image, so let's create a new Artifact Repository.
+First we'll need somewhere to host our image, so let's create a new Artifact Repository.
 
 ```bash
 undivert({{scripts/create_repository.sh}})
@@ -138,17 +138,45 @@ We got our pods off the incompatible nodes, but some of the Pods are stuck pendi
 
 ## Multiarch Builds
 
-Docker images are actually a manifest that can consist of one or more images. If the container image manifest is built properly, clients will simply run the appropriate image for the host's CPU architecture and OS. Docker's buildx tool makes this easy, however Cloud Build makes it easier.
+Docker images are a [manifest](https://docs.docker.com/registry/spec/manifest-v2-2/) that can reference one or more images. If the container image manifest is built properly, clients will simply run the appropriate image for their CPU architecture and OS. Docker's [buildx](https://docs.docker.com/buildx/working-with-buildx/) tool makes this easy, however Cloud Build makes it easier.
 
 ### Submit a Build
 
-We previously created our container registry, so now we just need to submit our build with the included [cloudbuild.yaml](cloudbuild.yaml)
+We previously created our container registry, so now we just need to submit our build with the included [cloudbuild.yaml](cloudbuild.yaml)(based on Google's [IoT multiarch build guide](https://cloud.google.com/architecture/building-multi-architecture-container-images-iot-devices-tutorial)).
 
 ```bash
 undivert({{scripts/submit_build.sh}})
 ```
 
 After the build completes, there should be images for amd64 and arm64 in the manifest for the envspitter:1.1 image.
+
+```
+$ docker manifest inspect us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:1.1
+{
+   "schemaVersion": 2,
+   "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+   "manifests": [
+      {
+         "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+         "size": 740,
+         "digest": "sha256:d2716ba313ad3fb064c43e3fe5c30711931d2d2ec267481f0de31f2395833261",
+         "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+         }
+      },
+      {
+         "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+         "size": 740,
+         "digest": "sha256:0046dcbceaa44c9cdc5ef209bc2e0168a86b734bd39f1834037bd5288c25f67c",
+         "platform": {
+            "architecture": "arm64",
+            "os": "linux"
+         }
+      }
+   ]
+}
+```
 
 ### Updating our deployment
 
@@ -187,7 +215,10 @@ The lower cost of ARM processers on GCP offers an opportunity to reduce compute 
 
 Compatiblity aside, you may find some workloads work faster on arm64 or x86_64, in which case Kubernetes offers simple semantics for making sure those workloads run where they are most performant.
 
-
 ## Further Reading
 
-TBD
+- [GCP Announces ARM Machine Blog Thing](http://cloud.google.com)
+- [Docker: Multi-CPU Architecture Support](https://docs.docker.com/desktop/multi-arch/)
+- [GKE Docs](https://cloud.google.com/kubernetes-engine/docs/)
+- [Kubernetes up and Running](http://shop.oreilly.com/product/0636920043874.do)
+- [Kubernetes the Hard Way](https://github.com/kelseyhightower/kubernetes-the-hard-way) (low-level infrastructure)

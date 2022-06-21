@@ -22,9 +22,6 @@ steps:
     - name: 'gcr.io/cloud-builders/docker:20.10.14'
       args: ['buildx', 'use', 'builder']
       id: 'select-builder'
-#    - name: 'gcr.io/cloud-builders/docker:20.10.14'
-#      args: ['buildx', 'inspect', '--bootstrap']
-#      id: 'show-target-build-platforms'
     - name: 'gcr.io/cloud-builders/docker:20.10.14'
       args: ['buildx', 'build', '--platform', '$_DOCKER_BUILDX_PLATFORMS', '-t', 'us-docker.pkg.dev/$PROJECT_ID/envspitter/envspitter:$TAG_NAME', '--push', '.']
       id: 'build-and-push'
