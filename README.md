@@ -7,6 +7,7 @@ This guide will cover how to run CPU-specific workloads on mixed clusters, and a
 
 ## Table of Contents
   * [Prerequisites](#prerequisites)
+  * [Setup](#setup)
   * [Provisioning a Kubernetes Cluster](#provisioning-a-kubernetes-cluster)
   * [Building and Deploying our App](#building-and-deploying-our-app)
     * [Examining our Deployment](#examining-our-deployment)
@@ -15,6 +16,7 @@ This guide will cover how to run CPU-specific workloads on mixed clusters, and a
     * [Submit a Build](#submit-a-build)
     * [Updating our deployment](#updating-our-deployment)
   * [Conclusions](#conclusions)
+  * [Teardown](#teardown)
   * [Further Reading](#further-reading)
 
 
@@ -33,6 +35,23 @@ This guide also assumes:
 1. A project has been created in GCP
 1. A network in that project exists
 1. You have permissions to create GKE clusters, Artifact Repositories, and submit Cloud Builds.
+
+## Setup
+
+This guide will assume you are in a working clone of this repo:
+
+```bash
+git clone https://github.com/sadasystems/gke-multiarch-guide
+cd gke-multiarch-guide
+```
+
+We also need to set a variable for use later.
+
+```bash
+# Attempt to grab your current project. If this fails manually set the PROJECT_ID variable to your project id.
+export PROJECT_ID=$(gcloud config get-value project)
+
+```
 
 ## Provisioning a Kubernetes Cluster
 
@@ -61,12 +80,12 @@ Let's check on our nodes:
 ```
 $ kubectl get nodes
 NAME                                       STATUS   ROLES    AGE   VERSION
-gke-multiarch-arm-9afe67fe-cpxn            Ready    <none>   31m   v1.23.6-gke.1700
-gke-multiarch-arm-9afe67fe-g0db            Ready    <none>   31m   v1.23.6-gke.1700
-gke-multiarch-arm-9afe67fe-hkn9            Ready    <none>   31m   v1.23.6-gke.1700
-gke-multiarch-default-pool-7efc8129-7qgw   Ready    <none>   33m   v1.23.6-gke.1700
-gke-multiarch-default-pool-7efc8129-9lw5   Ready    <none>   33m   v1.23.6-gke.1700
-gke-multiarch-default-pool-7efc8129-zf0n   Ready    <none>   33m   v1.23.6-gke.1700
+gke-multiarch-arm-4f67b11b-3rjq            Ready    <none>   9m6s   v1.23.6-gke.1700
+gke-multiarch-arm-4f67b11b-bxnh            Ready    <none>   9m8s   v1.23.6-gke.1700
+gke-multiarch-arm-4f67b11b-l44s            Ready    <none>   9m8s   v1.23.6-gke.1700
+gke-multiarch-default-pool-8ace7592-072c   Ready    <none>   11m    v1.23.6-gke.1700
+gke-multiarch-default-pool-8ace7592-94x5   Ready    <none>   11m    v1.23.6-gke.1700
+gke-multiarch-default-pool-8ace7592-j4l0   Ready    <none>   11m    v1.23.6-gke.1700
 ```
 
 Our cluster is up and ready for use!
@@ -75,7 +94,7 @@ Our cluster is up and ready for use!
 
 We need something to run on our cluster, so let's build a demo app and push it to a repo.
 
-First we'll need somewhere to host our image, so let's create a new Artifact Repository.
+First we'll need somewhere to host our container image, so let's create a new [Artifact Repository](https://cloud.google.com/artifact-registry/docs/docker/store-docker-container-images).
 
 ```bash
 # Create a Docker Artifact Repository in multiple redundant US regions.
@@ -87,10 +106,10 @@ Now we build and push our Docker image:
 
 ```bash
 # Build the docker image
-docker build . -t us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:${TAG_NAME}
+docker build . -t us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:1.0
 
 # Push the docker image
-docker push  us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:${TAG_NAME}
+docker push us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:1.0
 
 ```
 
@@ -112,24 +131,20 @@ Our application has been deployed, let's check on it:
 ```
 $ kubectl get pod  -o wide
 NAME                         READY   STATUS             RESTARTS     AGE   IP          NODE                                       NOMINATED NODE   READINESS GATES
-envspitter-899c74bd9-77zsw   0/1     CrashLoopBackOff   1 (5s ago)   8s    10.76.4.4   gke-multiarch-arm-9afe67fe-hkn9            <none>           <none>
-envspitter-899c74bd9-9pzmf   0/1     CrashLoopBackOff   1 (5s ago)   8s    10.76.3.3   gke-multiarch-arm-9afe67fe-g0db            <none>           <none>
-envspitter-899c74bd9-cl75j   0/1     CrashLoopBackOff   1 (5s ago)   9s    10.76.3.2   gke-multiarch-arm-9afe67fe-g0db            <none>           <none>
-envspitter-899c74bd9-cpgrp   1/1     Running            0            8s    10.76.2.4   gke-multiarch-default-pool-7efc8129-zf0n   <none>           <none>
-envspitter-899c74bd9-gm78h   0/1     CrashLoopBackOff   1 (4s ago)   8s    10.76.5.4   gke-multiarch-arm-9afe67fe-cpxn            <none>           <none>
-envspitter-899c74bd9-mmwz8   1/1     Running            0            8s    10.76.0.5   gke-multiarch-default-pool-7efc8129-7qgw   <none>           <none>
-envspitter-899c74bd9-p5fxk   1/1     Running            0            8s    10.76.2.5   gke-multiarch-default-pool-7efc8129-zf0n   <none>           <none>
-envspitter-899c74bd9-prjfv   0/1     CrashLoopBackOff   1 (4s ago)   8s    10.76.5.3   gke-multiarch-arm-9afe67fe-cpxn            <none>           <none>
-envspitter-899c74bd9-qtd4n   1/1     Running            0            8s    10.76.1.9   gke-multiarch-default-pool-7efc8129-9lw5   <none>           <none>
-envspitter-899c74bd9-rjq7w   0/1     CrashLoopBackOff   1 (5s ago)   8s    10.76.4.5   gke-multiarch-arm-9afe67fe-hkn9            <none>           <none>
+envspitter-7898df797f-2xf8q   0/1     CrashLoopBackOff   1 (9s ago)   13s   10.76.3.2   gke-multiarch-arm-4f67b11b-3rjq            <none>           <none>
+envspitter-7898df797f-2zmdr   1/1     Running            0            12s   10.76.1.9   gke-multiarch-default-pool-8ace7592-94x5   <none>           <none>
+envspitter-7898df797f-72w76   0/1     CrashLoopBackOff   1 (9s ago)   12s   10.76.5.3   gke-multiarch-arm-4f67b11b-bxnh            <none>           <none>
+envspitter-7898df797f-879vr   1/1     Running            0            12s   10.76.2.5   gke-multiarch-default-pool-8ace7592-072c   <none>           <none>
+envspitter-7898df797f-jd5c2   0/1     CrashLoopBackOff   1 (8s ago)   13s   10.76.4.3   gke-multiarch-arm-4f67b11b-l44s            <none>           <none>
+envspitter-7898df797f-r7s8v   1/1     Running            0            12s   10.76.0.5   gke-multiarch-default-pool-8ace7592-j4l0   <none>           <none>
 ```
 
 Looks like many of the pods are in a bad state.
 
-Pick a pod from the deployment and examine the logs.
+Let's examine the pod logs.
 
 ```
-$ kubectl logs envspitter-899c74bd9-77zsw
+$ kubectl logs -l app=envspitter
 exec /app/envspitter: exec format error
 ``` 
 
@@ -162,17 +177,16 @@ kubectl patch deployment envspitter --patch-file=k8s-objects/envspitter-dp-patch
 Now let's check on our Pods.
 
 ```
-NAME                          READY   STATUS    RESTARTS   AGE   IP           NODE                                       NOMINATED NODE   READINESS GATES
-envspitter-6474f96d8c-785lm   0/1     Pending   0          18s   <none>       <none>                                     <none>           <none>
-envspitter-6474f96d8c-7tldz   1/1     Running   0          19s   10.76.0.8    gke-multiarch-default-pool-7efc8129-7qgw   <none>           <none>
-envspitter-6474f96d8c-9k465   1/1     Running   0          21s   10.76.0.6    gke-multiarch-default-pool-7efc8129-7qgw   <none>           <none>
-envspitter-6474f96d8c-9r7lt   1/1     Running   0          20s   10.76.1.11   gke-multiarch-default-pool-7efc8129-9lw5   <none>           <none>
-envspitter-6474f96d8c-jx4kq   1/1     Running   0          19s   10.76.1.12   gke-multiarch-default-pool-7efc8129-9lw5   <none>           <none>
-envspitter-6474f96d8c-l5xpg   1/1     Running   0          21s   10.76.1.10   gke-multiarch-default-pool-7efc8129-9lw5   <none>           <none>
-envspitter-6474f96d8c-pnsz7   1/1     Running   0          19s   10.76.2.7    gke-multiarch-default-pool-7efc8129-zf0n   <none>           <none>
-envspitter-6474f96d8c-scbdl   1/1     Running   0          21s   10.76.2.6    gke-multiarch-default-pool-7efc8129-zf0n   <none>           <none>
-envspitter-6474f96d8c-vfhff   1/1     Running   0          19s   10.76.2.8    gke-multiarch-default-pool-7efc8129-zf0n   <none>           <none>
-envspitter-6474f96d8c-x4bvl   1/1     Running   0          20s   10.76.0.7    gke-multiarch-default-pool-7efc8129-7qgw   <none>           <none>
+$ kubectl get pods -o wide
+NAME                          READY   STATUS    RESTARTS   AGE     IP          NODE                                       NOMINATED NODE   READINESS GATES
+envspitter-5d5df44c57-f88hx   0/1     Pending   0          2m38s   <none>      <none>                                     <none>           <none>
+envspitter-5d5df44c57-jtnk9   0/1     Pending   0          2m38s   <none>      <none>                                     <none>           <none>
+envspitter-5d5df44c57-mv5h4   0/1     Pending   0          2m37s   <none>      <none>                                     <none>           <none>
+envspitter-5d5df44c57-wgj57   1/1     Running   0          2m38s   10.76.2.6   gke-multiarch-default-pool-8ace7592-072c   <none>           <none>
+envspitter-749d4b99cc-l6699   0/1     Pending   0          5m29s   <none>      <none>                                     <none>           <none>
+envspitter-7898df797f-2zmdr   1/1     Running   0          9m49s   10.76.1.9   gke-multiarch-default-pool-8ace7592-94x5   <none>           <none>
+envspitter-7898df797f-879vr   1/1     Running   0          9m49s   10.76.2.5   gke-multiarch-default-pool-8ace7592-072c   <none>           <none>
+envspitter-7898df797f-r7s8v   1/1     Running   0          9m49s   10.76.0.5   gke-multiarch-default-pool-8ace7592-j4l0   <none>           <none>
 ```
 
 We got our pods off the incompatible nodes, but some of the Pods are stuck pending because there aren't enough nodes compatible with our workload. Let's get it compatible.
@@ -243,24 +257,34 @@ Our pods should now be scheduled across all nodes.
 
 ```
 sada-hq-macpro89:multiarch elsonrodriguez$ kubectl get pod -o wide
-NAME                          READY   STATUS    RESTARTS   AGE   IP           NODE                                       NOMINATED NODE   READINESS GATES
-envspitter-75cd4bdd68-58q4x   1/1     Running   0          13s   10.76.4.7    gke-multiarch-arm-9afe67fe-hkn9            <none>           <none>
-envspitter-75cd4bdd68-5pz24   1/1     Running   0          13s   10.76.3.4    gke-multiarch-arm-9afe67fe-g0db            <none>           <none>
-envspitter-75cd4bdd68-5zjbn   1/1     Running   0          13s   10.76.5.5    gke-multiarch-arm-9afe67fe-cpxn            <none>           <none>
-envspitter-75cd4bdd68-dc4q8   1/1     Running   0          9s    10.76.1.16   gke-multiarch-default-pool-7efc8129-9lw5   <none>           <none>
-envspitter-75cd4bdd68-g8sgw   1/1     Running   0          10s   10.76.0.12   gke-multiarch-default-pool-7efc8129-7qgw   <none>           <none>
-envspitter-75cd4bdd68-k4q7b   1/1     Running   0          10s   10.76.4.8    gke-multiarch-arm-9afe67fe-hkn9            <none>           <none>
-envspitter-75cd4bdd68-mks74   1/1     Running   0          13s   10.76.4.6    gke-multiarch-arm-9afe67fe-hkn9            <none>           <none>
-envspitter-75cd4bdd68-q49l8   1/1     Running   0          9s    10.76.2.12   gke-multiarch-default-pool-7efc8129-zf0n   <none>           <none>
-envspitter-75cd4bdd68-t4b92   1/1     Running   0          13s   10.76.3.5    gke-multiarch-arm-9afe67fe-g0db            <none>           <none>
-envspitter-75cd4bdd68-zv24x   1/1     Running   0          10s   10.76.5.6    gke-multiarch-arm-9afe67fe-cpxn            <none>           <none>
+NAME                          READY   STATUS    RESTARTS   AGE   IP          NODE                              NOMINATED NODE   READINESS GATES
+envspitter-7bb8b99f46-6ljn2   1/1     Running   0          6s    10.76.5.4   gke-multiarch-arm-4f67b11b-bxnh   <none>           <none>
+envspitter-7bb8b99f46-fxzg8   1/1     Running   0          2s    10.76.5.5   gke-multiarch-arm-4f67b11b-bxnh   <none>           <none>
+envspitter-7bb8b99f46-hgj4d   1/1     Running   0          6s    10.76.3.3   gke-multiarch-arm-4f67b11b-3rjq   <none>           <none>
+envspitter-7bb8b99f46-qvhcg   1/1     Running   0          2s    10.76.4.5   gke-multiarch-arm-4f67b11b-l44s   <none>           <none>
+envspitter-7bb8b99f46-qxwgt   1/1     Running   0          6s    10.76.4.4   gke-multiarch-arm-4f67b11b-l44s   <none>           <none>
+envspitter-7bb8b99f46-swrpx   1/1     Running   0          2s    10.76.3.4   gke-multiarch-arm-4f67b11b-3rjq   <none>           <none>
 ```
+
 
 ## Conclusions 
 
 The lower cost of ARM processors on GCP offers an opportunity to reduce compute costs while maintaining performance for many workloads. The main challenge is the availability of software built for ARM. While most official Docker images have support for multiple architectures, you may find gaps. Using Kubernetes provides a way to save money where possible, and maintain compatibility where it's not. The increasing popularity of ARM and Docker's buildx toolkit will make it increasingly rare to encounter a workload which needs any special consideration at all. Those same tools will also enable your own applications to use ARM where it makes sense.
 
 Compatibility aside, you may find some workloads work faster on arm64 or x86_64, in which case Kubernetes offers simple semantics for making sure those workloads run where they are most performant.
+
+## Teardown
+
+To delete the resources created in this guide:
+
+```bash
+# Delete the GKE cluster
+gcloud container clusters delete multiarch
+
+# Delete the Docker registry
+gcloud artifacts repositories delete envspitter --location=us
+
+```
 
 ## Further Reading
 

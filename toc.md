@@ -1,4 +1,5 @@
   * [Prerequisites](#prerequisites)
+  * [Setup](#setup)
   * [Provisioning a Kubernetes Cluster](#provisioning-a-kubernetes-cluster)
   * [Building and Deploying our App](#building-and-deploying-our-app)
     * [Examining our Deployment](#examining-our-deployment)
@@ -7,5 +8,6 @@
     * [Submit a Build](#submit-a-build)
     * [Updating our deployment](#updating-our-deployment)
   * [Conclusions](#conclusions)
+  * [Teardown](#teardown)
   * [Further Reading](#further-reading)
 

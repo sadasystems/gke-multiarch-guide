@@ -6,7 +6,7 @@ spec:
   selector:
     matchLabels:
       app: envspitter
-  replicas: 10
+  replicas: 6
   template:
     metadata:
       labels:
@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: envspitter
-        image: us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:${TAG_NAME} 
+        image: us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:1.0
         env:
         - name: PORT
           value: "80"
@@ -25,7 +25,7 @@ spec:
         resources:
           limits:
             memory: "50Mi"
-            cpu: "1" 
+            cpu: "1.5"
           requests:
             memory: "50Mi"
-            cpu: "1" 
+            cpu: "1.5"
