@@ -1,7 +1,7 @@
 changequote(`{{', `}}')
 # Working with ARM64 Machines on Google Kubernetes Engine
 
-Google has recently [announced](http://cloud.google.com/blog) their ARM CPU machines types. Kubernetes has had support for ARM machines for some time(as evidenced by the [proliferation](https://www.google.com/search?as_q=kubernetes+raspberry+pi+cluster&tbm=isch) of Raspberry Pi clusters), however running a mixed architexture cluster can pose some challenges.
+Google has recently [announced](http://cloud.google.com/blog) their ARM CPU machines types. Kubernetes has had support for ARM machines for some time(as evidenced by the [proliferation](https://www.google.com/search?as_q=kubernetes+raspberry+pi+cluster&tbm=isch) of Raspberry Pi clusters), however running a mixed architecture cluster can pose some challenges.
 
 This guide will cover how to run CPU-specific workloads on mixed clusters, and an example of how to make workloads CPU-agnostic.
 
@@ -21,7 +21,7 @@ This guide also assumes:
 
 1. A project has been created in GCP
 1. A network in that project exists
-1. You have permissions to create GKE clusters, Artifact Repisotires, and submit Cloud Builds.
+1. You have permissions to create GKE clusters, Artifact Repositories, and submit Cloud Builds.
 
 ## Provisioning a Kubernetes Cluster
 
@@ -211,9 +211,9 @@ envspitter-75cd4bdd68-zv24x   1/1     Running   0          10s   10.76.5.6    gk
 
 ## Conclusions 
 
-The lower cost of ARM processers on GCP offers an opportunity to reduce compute costs while maintaining performance for many workloads. The main challenge is the availability of software built for ARM. While most official Docker images have support for multiple architectures, you may find gaps. Using Kubernetes provides a way to save money where possible, and maintain compatibility where it's not. The increasing popularity of ARM and Docker's buildx toolkit will make it increasingly rare to encounter a workload which needs any special consideration at all. Those same tools will also enable your own applications to use ARM where it makes sense.
+The lower cost of ARM processors on GCP offers an opportunity to reduce compute costs while maintaining performance for many workloads. The main challenge is the availability of software built for ARM. While most official Docker images have support for multiple architectures, you may find gaps. Using Kubernetes provides a way to save money where possible, and maintain compatibility where it's not. The increasing popularity of ARM and Docker's buildx toolkit will make it increasingly rare to encounter a workload which needs any special consideration at all. Those same tools will also enable your own applications to use ARM where it makes sense.
 
-Compatiblity aside, you may find some workloads work faster on arm64 or x86_64, in which case Kubernetes offers simple semantics for making sure those workloads run where they are most performant.
+Compatibility aside, you may find some workloads work faster on arm64 or x86_64, in which case Kubernetes offers simple semantics for making sure those workloads run where they are most performant.
 
 ## Further Reading
 
