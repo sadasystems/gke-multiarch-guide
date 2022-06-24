@@ -3,7 +3,7 @@ changequote(`{{', `}}')
 
 Google has recently [announced](http://cloud.google.com/blog) their ARM CPU machines types. Kubernetes has had support for ARM machines for some time(as evidenced by the [proliferation](https://www.google.com/search?as_q=kubernetes+raspberry+pi+cluster&tbm=isch) of Raspberry Pi clusters), however running a mixed architecture cluster can pose some challenges.
 
-This guide will cover how to run CPU-specific workloads on mixed clusters, and an example of how to make workloads CPU-agnostic.
+This guide will cover how to run CPU-specific workloads on mixed clusters, and provide an example of how to make workloads CPU-agnostic.
 
 ## Table of Contents
 undivert({{toc.md}})
@@ -205,7 +205,7 @@ undivert({{scripts/unpatch_deployment.sh}})
 Our pods should now be scheduled across all nodes.
 
 ```
-sada-hq-macpro89:multiarch elsonrodriguez$ kubectl get pod -o wide
+$ kubectl get pod -o wide
 NAME                          READY   STATUS    RESTARTS   AGE   IP          NODE                              NOMINATED NODE   READINESS GATES
 envspitter-7bb8b99f46-6ljn2   1/1     Running   0          6s    10.76.5.4   gke-multiarch-arm-4f67b11b-bxnh   <none>           <none>
 envspitter-7bb8b99f46-fxzg8   1/1     Running   0          2s    10.76.5.5   gke-multiarch-arm-4f67b11b-bxnh   <none>           <none>
