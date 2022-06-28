@@ -1,7 +1,7 @@
 
 # Working with ARM64 Machines on Google Kubernetes Engine
 
-Google has recently [announced](http://cloud.google.com/blog) their ARM CPU machines types. Kubernetes has had support for ARM machines for some time(as evidenced by the [proliferation](https://www.google.com/search?as_q=kubernetes+raspberry+pi+cluster&tbm=isch) of Raspberry Pi clusters), however running a mixed architecture cluster can pose some challenges.
+Google has recently [announced](http://cloud.google.com/blog) their ARM CPU machines types. Kubernetes has had support for ARM machines for some time (as evidenced by the [proliferation](https://www.google.com/search?as_q=kubernetes+raspberry+pi+cluster&tbm=isch) of Raspberry Pi clusters), however running a mixed architecture cluster can pose some challenges.
 
 This guide covers how to run CPU-specific workloads on mixed clusters, and provides an example of how to make workloads CPU-agnostic.
 
@@ -66,7 +66,7 @@ gcloud container clusters create multiarch --machine-type=n1-standard-4 \
 
 ```
 
-Next we'll add a node pool of `t2a-standard-4` machines(t2a is Google's ARM offering):
+Next we'll add a node pool of `t2a-standard-4` machines (t2a is Google's ARM offering):
 
 ```bash
 # Add a node pool to our cluster. t2a machines only support Google Virtual NIC
