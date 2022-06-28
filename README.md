@@ -3,7 +3,7 @@
 
 Google has recently [announced](http://cloud.google.com/blog) their ARM CPU machines types. Kubernetes has had support for ARM machines for some time(as evidenced by the [proliferation](https://www.google.com/search?as_q=kubernetes+raspberry+pi+cluster&tbm=isch) of Raspberry Pi clusters), however running a mixed architecture cluster can pose some challenges.
 
-This guide will cover how to run CPU-specific workloads on mixed clusters, and provide an example of how to make workloads CPU-agnostic.
+This guide covers how to run CPU-specific workloads on mixed clusters, and provides an example of how to make workloads CPU-agnostic.
 
 ## Table of Contents
   * [Prerequisites](#prerequisites)
@@ -23,29 +23,29 @@ This guide will cover how to run CPU-specific workloads on mixed clusters, and p
 
 ## Prerequisites
 
-The following utilities need to be installed to run through this guide:
+Install and configure the following utilities:
 
-1. Install [`gcloud`](https://cloud.google.com/sdk/docs/downloads-interactive#mac)
-1. Configure `gcloud`: Run `gcloud init` and follow its prompts to configure the target GCP Project, region and other settings
-1. Install [Docker](https://www.docker.com/products/docker-desktop)
-1. Install [envsubst](https://www.gnu.org/software/gettext/manual/html_node/envsubst-Invocation.html), typically via the gettext package, `brew install gettext` or `apt-get install gettext`
+1. Install [`gcloud`](https://cloud.google.com/sdk/docs/downloads-interactive#mac).
+    1. Configure `gcloud` by running `gcloud init` and following its prompts to configure the target Google Cloud project, region and other settings.
+1. Install [Docker](https://www.docker.com/products/docker-desktop).
+1. Install [envsubst](https://www.gnu.org/software/gettext/manual/html_node/envsubst-Invocation.html), typically via the gettext package, `brew install gettext` or `apt-get install gettext`.
 
 This guide also assumes:
 
-1. A project has been created in GCP
-1. A network in that project exists
+1. A project has been created in Google Cloud.
+1. A network in that project exists.
 1. You have permissions to create GKE clusters, Artifact Repositories, and submit Cloud Builds.
 
 ## Setup
 
-This guide will assume you are in a working clone of this repo:
+This guide assumes you are in a working clone of this repo:
 
 ```bash
 git clone https://github.com/sadasystems/gke-multiarch-guide
 cd gke-multiarch-guide
 ```
 
-We also need to set a variable for use later.
+We also need to set a variable for later use:
 
 ```bash
 # Attempt to grab your current project. If this fails manually set the PROJECT_ID variable to your project id.
@@ -66,7 +66,7 @@ gcloud container clusters create multiarch --machine-type=n1-standard-4 \
 
 ```
 
-Next we'll add a node pool of `t2a-standard-4` machines(t2a is Google's ARM offering).
+Next we'll add a node pool of `t2a-standard-4` machines(t2a is Google's ARM offering):
 
 ```bash
 # Add a node pool to our cluster. t2a machines only support Google Virtual NIC
@@ -97,7 +97,7 @@ Our cluster is up and ready for use!
 
 We need something to run on our cluster, so let's build a demo app and push it to a repo.
 
-First we'll need somewhere to host our container image, so let's create a new [Artifact Repository](https://cloud.google.com/artifact-registry/docs/docker/store-docker-container-images).
+First we'll need somewhere to host our container image. To do this, let's create a new [Artifact Repository](https://cloud.google.com/artifact-registry/docs/docker/store-docker-container-images):
 
 ```bash
 # Create a Docker Artifact Repository in multiple redundant US regions.
@@ -116,7 +116,7 @@ docker push us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:1.0
 
 ```
 
-With our image pushed, we can now deploy it to our GKE cluster.
+With our image pushed, we can now deploy it to our GKE cluster:
 
 ```bash
 # Create a Deployment for our app
@@ -155,7 +155,7 @@ It turns out our local machine didn't quite match the architecture of some of ou
 
 ### Fixing the Deployment
 
-A quick fix would be to make our app only run on compatible machines. Fortunately the nodes are labeled with their CPU architecture, so we can use a simple node selector to restrict pods to compatible nodes:
+A quick fix would be to make our app run only on compatible machines. Fortunately the nodes are labeled with their CPU architecture, so we can use a simple node selector to restrict pods to compatible nodes:
 
 ```yaml
 spec:
@@ -166,7 +166,7 @@ spec:
 
 ```
 
-Let's patch the deployment with the appropriate snippet.
+Let's patch the deployment with the appropriate snippet:
 
 ```bash
 # Detect system architecture
@@ -192,15 +192,15 @@ envspitter-7898df797f-879vr   1/1     Running   0          9m49s   10.76.2.5   g
 envspitter-7898df797f-r7s8v   1/1     Running   0          9m49s   10.76.0.5   gke-multiarch-default-pool-8ace7592-j4l0   <none>           <none>
 ```
 
-We got our pods off the incompatible nodes, but some of the Pods are stuck pending because there aren't enough nodes compatible with our workload. Let's get it compatible.
+Our pods are now off of the incompatible nodes, but some of the Pods are stuck pending because there aren't enough nodes compatible with our workload. Let's get it compatible.
 
 ## Multiarch Builds
 
-Docker images are a [manifest](https://docs.docker.com/registry/spec/manifest-v2-2/) that can reference one or more images. If the container image manifest is built properly, clients will simply run the appropriate image for their CPU architecture and OS. Docker's [buildx](https://docs.docker.com/buildx/working-with-buildx/) tool makes this easy, however Cloud Build makes it easier.
+Docker images are a [manifest](https://docs.docker.com/registry/spec/manifest-v2-2/) that references one or more images. If the container image manifest is built properly, clients will simply run the appropriate image for their CPU architecture and OS. Docker's [buildx](https://docs.docker.com/buildx/working-with-buildx/) tool makes this easy, however Cloud Build makes it easier.
 
 ### Submit a Build
 
-We previously created our container registry, so now we just need to submit our build with the included [cloudbuild.yaml](cloudbuild.yaml)(based on Google's [IoT multiarch build guide](https://cloud.google.com/architecture/building-multi-architecture-container-images-iot-devices-tutorial)).
+We previously created our container registry, so now we just need to submit our build with the included [cloudbuild.yaml](cloudbuild.yaml) based on Google's [IoT multiarch build guide](https://cloud.google.com/architecture/building-multi-architecture-container-images-iot-devices-tutorial).
 
 ```bash
 # Submit our multiarch build to Cloud Build with a specific tag.
@@ -240,7 +240,7 @@ $ docker manifest inspect us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:
 
 ### Updating our deployment
 
-Let's update our Deployment with the new image.
+Let's update our deployment with the new image:
 
 ```bash
 # Update the container image in our deployment to 1.1
@@ -248,7 +248,7 @@ kubectl set image deployment/envspitter envspitter=us-docker.pkg.dev/${PROJECT_I
 
 ```
 
-While the deployment has a new image that is compatible with both arm64 and amd64, we still have a node restriction in place. We must remove the node selector to get pods to schedule everywhere.
+While the deployment has a new image that is compatible with both arm64 and amd64, we still have a node restriction in place. In order to get pods to schedule everywhere we must remove the node selector:
 
 ```bash
 # Patch deployment to remove nodeselector 
@@ -272,7 +272,7 @@ envspitter-7bb8b99f46-swrpx   1/1     Running   0          2s    10.76.3.4   gke
 
 ## Conclusions 
 
-The lower cost of ARM processors on GCP offers an opportunity to reduce compute costs while maintaining performance for many workloads. The main challenge is the availability of software built for ARM. While most official Docker images have support for multiple architectures, you may find gaps. Using Kubernetes provides a way to save money where possible, and maintain compatibility where it's not. The increasing popularity of ARM and Docker's buildx toolkit will make it increasingly rare to encounter a workload which needs any special consideration at all. Those same tools will also enable your own applications to use ARM where it makes sense.
+The lower cost of ARM processors on Google Cloud offers an opportunity to reduce compute costs while maintaining performance for many workloads. The main challenge is the availability of software built for ARM. While most official Docker images have support for multiple architectures, you may find gaps. Using Kubernetes provides a way to save money where possible, and maintain compatibility where it's not. The increasing popularity of ARM and Docker's buildx toolkit will make it increasingly rare to encounter a workload which needs any special consideration at all. Those same tools will also enable your own applications to use ARM where it makes sense.
 
 Compatibility aside, you may find some workloads work faster on arm64 or x86_64, in which case Kubernetes offers simple semantics for making sure those workloads run where they are most performant.
 
@@ -291,7 +291,7 @@ gcloud artifacts repositories delete envspitter --location=us
 
 ## Further Reading
 
-- [GCP Announces ARM Machine Blog Thing](http://cloud.google.com)
+- [Google Cloud Announces ARM Machine Blog Thing](http://cloud.google.com)
 - [Docker: Multi-CPU Architecture Support](https://docs.docker.com/desktop/multi-arch/)
 - [GKE Docs](https://cloud.google.com/kubernetes-engine/docs/)
 - [Kubernetes up and Running](http://shop.oreilly.com/product/0636920043874.do)
