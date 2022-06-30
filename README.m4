@@ -161,7 +161,7 @@ undivert({{scripts/submit_build.sh}})
 After the build completes, there should be images for amd64 and arm64 in the manifest for the envspitter:1.1 image.
 
 ```
-$ docker manifest inspect us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:1.1
+$ docker manifest inspect us-docker.pkg.dev/${PROJECT_ID}/envspitter-${USER}/envspitter:1.1
 {
    "schemaVersion": 2,
    "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",

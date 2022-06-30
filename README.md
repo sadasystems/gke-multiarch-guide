@@ -59,7 +59,7 @@ First we'll provision a Google Kubernetes Engine (GKE) cluster:
 
 ```bash
 # Create a basic GKE cluster with 3 nodes.
-gcloud container clusters create multiarch --machine-type=n1-standard-4 \
+gcloud container clusters create multiarch-${USER} --machine-type=n1-standard-4 \
                                            --num-nodes=3 \
                                            --no-enable-shielded-nodes \
                                            --cluster-version=1.23.6-gke.1700
@@ -70,7 +70,7 @@ Next we'll add a node pool of `t2a-standard-4` machines (t2a is Google's ARM off
 
 ```bash
 # Add a node pool to our cluster. t2a machines only support Google Virtual NIC
-gcloud container node-pools create arm --cluster=multiarch \
+gcloud container node-pools create arm --cluster=multiarch-${USER} \
                                         --machine-type=t2a-standard-4 \
                                         --enable-gvnic \
                                         --num-nodes=3 \
@@ -101,7 +101,7 @@ First we'll need somewhere to host our container image. To do this, let's create
 
 ```bash
 # Create a Docker Artifact Repository in multiple redundant US regions.
-gcloud artifacts repositories create envspitter --repository-format=docker --location=us
+gcloud artifacts repositories create envspitter-${USER} --repository-format=docker --location=us
 
 ```
 
@@ -109,10 +109,10 @@ Now we build and push our Docker image:
 
 ```bash
 # Build the docker image
-docker build . -t us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:1.0
+docker build . -t us-docker.pkg.dev/${PROJECT_ID}/envspitter-${USER}/envspitter:1.0
 
 # Push the docker image
-docker push us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:1.0
+docker push us-docker.pkg.dev/${PROJECT_ID}/envspitter-${USER}/envspitter:1.0
 
 ```
 
@@ -204,14 +204,14 @@ We previously created our container registry, so now we just need to submit our 
 
 ```bash
 # Submit our multiarch build to Cloud Build with a specific tag.
-gcloud builds submit --substitutions TAG_NAME=1.1
+gcloud builds submit --substitutions TAG_NAME=1.1,_USERNAME=${USER}
 
 ```
 
 After the build completes, there should be images for amd64 and arm64 in the manifest for the envspitter:1.1 image.
 
 ```
-$ docker manifest inspect us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:1.1
+$ docker manifest inspect us-docker.pkg.dev/${PROJECT_ID}/envspitter-${USER}/envspitter:1.1
 {
    "schemaVersion": 2,
    "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
@@ -244,7 +244,7 @@ Let's update our deployment with the new image:
 
 ```bash
 # Update the container image in our deployment to 1.1
-kubectl set image deployment/envspitter envspitter=us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:1.1
+kubectl set image deployment/envspitter envspitter=us-docker.pkg.dev/${PROJECT_ID}/envspitter-${USER}/envspitter:1.1
 
 ```
 
@@ -282,10 +282,10 @@ To delete the resources created in this guide:
 
 ```bash
 # Delete the GKE cluster
-gcloud container clusters delete multiarch
+gcloud container clusters delete multiarch-${USER}
 
 # Delete the Docker registry
-gcloud artifacts repositories delete envspitter --location=us
+gcloud artifacts repositories delete envspitter-${USER} --location=us
 
 ```
 

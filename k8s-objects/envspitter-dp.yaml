@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: envspitter
-        image: us-docker.pkg.dev/${PROJECT_ID}/envspitter/envspitter:1.0
+        image: us-docker.pkg.dev/${PROJECT_ID}/envspitter-${USER}/envspitter:1.0
         env:
         - name: PORT
           value: "80"

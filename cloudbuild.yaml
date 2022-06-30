@@ -23,11 +23,12 @@ steps:
       args: ['buildx', 'use', 'builder']
       id: 'select-builder'
     - name: 'gcr.io/cloud-builders/docker:20.10.14'
-      args: ['buildx', 'build', '--platform', '$_DOCKER_BUILDX_PLATFORMS', '-t', 'us-docker.pkg.dev/$PROJECT_ID/envspitter/envspitter:$TAG_NAME', '--push', '.']
+      args: ['buildx', 'build', '--platform', '$_DOCKER_BUILDX_PLATFORMS', '-t', 'us-docker.pkg.dev/$PROJECT_ID/envspitter-$_USERNAME/envspitter:$TAG_NAME', '--push', '.']
       id: 'build-and-push'
 options:
     env:
         - 'DOCKER_CLI_EXPERIMENTAL=enabled'
 substitutions:
     _DOCKER_BUILDX_PLATFORMS: 'linux/amd64,linux/aarch64'
+    _USERNAME: 'username'
 ...
