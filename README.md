@@ -41,7 +41,7 @@ This guide also assumes:
 This guide assumes you are in a working clone of this repo:
 
 ```bash
-git clone git@github.com:sadasystems/gke-multiarch-guide.git
+git clone https://github.com/sadasystems/gke-multiarch-guide
 cd gke-multiarch-guide
 ```
 
@@ -50,7 +50,10 @@ We also need to set a variable for later use:
 ```bash
 # Attempt to grab your current project. If this fails manually set the PROJECT_ID variable to your project id.
 export PROJECT_ID=$(gcloud config get-value project)
-export REGION=$(gcloud config get-value run/region)
+
+# Same, set manually if this fails, for example us-central1-a
+export ZONE=$(gcloud config get-value compute/zone)
+
 ```
 
 ## Provisioning a Kubernetes Cluster
@@ -61,23 +64,25 @@ First we'll provision a Google Kubernetes Engine (GKE) cluster:
 # Create a basic GKE cluster with 3 nodes.
 gcloud container clusters create multiarch-${USER} \
     --machine-type=n1-standard-4 \
-    --num-nodes=1 \
+    --num-nodes=3 \
     --no-enable-shielded-nodes \
     --cluster-version=1.23.6-gke.1700 \
-    --region ${REGION}
+    --zone=${ZONE}
+
 ```
 
 Next we'll add a node pool of `t2a-standard-4` machines (t2a is Google's ARM offering):
 
 ```bash
-# Add a node pool to our cluster. t2a machines only support Google Virtual NIC
+# Add a node pool to our cluster. t2a machines must use Google Virtual NIC
 gcloud container node-pools create arm \
     --cluster=multiarch-${USER} \
     --machine-type=t2a-standard-4 \
     --enable-gvnic \
-    --num-nodes=1 \
+    --num-nodes=3 \
     --node-version=1.23.6-gke.1700 \
-    --region ${REGION}
+    --zone=${ZONE}
+
 ```
 
 Let's check on our nodes:
@@ -104,7 +109,10 @@ First we'll need somewhere to host our container image. To do this, let's create
 ```bash
 # Create a Docker Artifact Repository in multiple redundant US regions.
 gcloud artifacts repositories create envspitter-${USER} --repository-format=docker --location=us
+
+# Log on to Google's docker registry
 gcloud auth configure-docker us-docker.pkg.dev
+
 ```
 
 Now we build and push our Docker image:
@@ -115,6 +123,7 @@ docker build . -t us-docker.pkg.dev/${PROJECT_ID}/envspitter-${USER}/envspitter:
 
 # Push the docker image
 docker push us-docker.pkg.dev/${PROJECT_ID}/envspitter-${USER}/envspitter:1.0
+
 ```
 
 With our image pushed, we can now deploy it to our GKE cluster:
@@ -125,6 +134,7 @@ envsubst < k8s-objects/envspitter-dp.yaml | kubectl apply -f -
 
 # Create a Loadbalancer service for our app
 kubectl apply -f k8s-objects/envspitter-svc.yaml
+
 ```
 
 ### Examining our Deployment
@@ -163,6 +173,7 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/arch: amd64
+
 ```
 
 Let's patch the deployment with the appropriate snippet:
@@ -173,6 +184,7 @@ export SYSTEM_ARCH=$(uname -m)
 
 # Patch deployment to only run on GCE instances matching your local machine's architecture
 kubectl patch deployment envspitter --patch-file=k8s-objects/envspitter-dp-patch-${SYSTEM_ARCH}.yaml
+
 ```
 
 Now let's check on our Pods.
@@ -203,6 +215,7 @@ We previously created our container registry, so now we just need to submit our 
 ```bash
 # Submit our multiarch build to Cloud Build with a specific tag.
 gcloud builds submit --substitutions TAG_NAME=1.1,_USERNAME=${USER}
+
 ```
 
 After the build completes, there should be images for amd64 and arm64 in the manifest for the envspitter:1.1 image.
@@ -242,6 +255,7 @@ Let's update our deployment with the new image:
 ```bash
 # Update the container image in our deployment to 1.1
 kubectl set image deployment/envspitter envspitter=us-docker.pkg.dev/${PROJECT_ID}/envspitter-${USER}/envspitter:1.1
+
 ```
 
 While the deployment has a new image that is compatible with both arm64 and amd64, we still have a node restriction in place. In order to get pods to schedule everywhere we must remove the node selector:
@@ -249,6 +263,7 @@ While the deployment has a new image that is compatible with both arm64 and amd6
 ```bash
 # Patch deployment to remove nodeselector 
 kubectl patch deployment envspitter --patch-file=k8s-objects/envspitter-dp-patch-noselector.yaml
+
 ```
 
 Our pods should now be scheduled across all nodes.
@@ -264,6 +279,7 @@ envspitter-7bb8b99f46-qxwgt   1/1     Running   0          6s    10.76.4.4   gke
 envspitter-7bb8b99f46-swrpx   1/1     Running   0          2s    10.76.3.4   gke-multiarch-arm-4f67b11b-3rjq   <none>           <none>
 ```
 
+
 ## Conclusions 
 
 The lower cost of ARM processors on Google Cloud offers an opportunity to reduce compute costs while maintaining performance for many workloads. The main challenge is the availability of software built for ARM. While most official Docker images have support for multiple architectures, you may find gaps. Using Kubernetes provides a way to save money where possible, and maintain compatibility where it's not. The increasing popularity of ARM and Docker's buildx toolkit will make it increasingly rare to encounter a workload which needs any special consideration at all. Those same tools will also enable your own applications to use ARM where it makes sense.
@@ -276,10 +292,11 @@ To delete the resources created in this guide:
 
 ```bash
 # Delete the GKE cluster
-gcloud container clusters delete multiarch-${USER} --region us-central1
+gcloud container clusters delete multiarch-${USER} --zone=${ZONE}
 
 # Delete the Docker registry
 gcloud artifacts repositories delete envspitter-${USER} --location=us
+
 ```
 
 ## Further Reading
