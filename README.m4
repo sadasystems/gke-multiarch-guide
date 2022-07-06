@@ -188,7 +188,7 @@ $ docker manifest inspect us-docker.pkg.dev/${PROJECT_ID}/envspitter-${USER}/env
 }
 ```
 
-### Updating our deployment
+### Updating our Deployment
 
 Let's update our deployment with the new image:
 
@@ -215,6 +215,15 @@ envspitter-7bb8b99f46-qxwgt   1/1     Running   0          6s    10.76.4.4   gke
 envspitter-7bb8b99f46-swrpx   1/1     Running   0          2s    10.76.3.4   gke-multiarch-arm-4f67b11b-3rjq   <none>           <none>
 ```
 
+### Testing our Deployment
+
+Our app is now deployed across all nodes. Let's hit it via the external loadbalancer and see what it does.
+
+```shell
+undivert({{scripts/check_app.sh}})
+```
+
+The output should change every few seconds, and you'll see that the app is being served from amd64 and arm64 machines.
 
 ## Conclusions 
 

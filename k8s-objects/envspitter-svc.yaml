@@ -2,10 +2,13 @@ apiVersion: v1
 kind: Service
 metadata:
   name: envspitter
+  annotations:
+    cloud.google.com/neg: '{"exposed_ports": {"80":{}}}'
 spec:
   type: LoadBalancer 
   selector:
     app: envspitter
+  sessionAffinity: None
   ports:
   - name: http 
     protocol: TCP
