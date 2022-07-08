@@ -7,7 +7,7 @@
   * [Multiarch Builds](#multiarch-builds)
     * [Submit a Build](#submit-a-build)
     * [Updating our Deployment](#updating-our-deployment)
-    * [Testing our Deployment](#testing-our-deployment)
+    * [Testing our Application](#testing-our-application)
   * [Conclusions](#conclusions)
   * [Teardown](#teardown)
   * [Further Reading](#further-reading)

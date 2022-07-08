@@ -215,7 +215,7 @@ envspitter-7bb8b99f46-qxwgt   1/1     Running   0          6s    10.76.4.4   gke
 envspitter-7bb8b99f46-swrpx   1/1     Running   0          2s    10.76.3.4   gke-multiarch-arm-4f67b11b-3rjq   <none>           <none>
 ```
 
-### Testing our Deployment
+### Testing our Application
 
 Our app is now deployed across all nodes. Let's hit it via the external loadbalancer and see what it does.
 
@@ -223,11 +223,11 @@ Our app is now deployed across all nodes. Let's hit it via the external loadbala
 undivert({{scripts/check_app.sh}})
 ```
 
-The output should change every few seconds, and you'll see that the app is being served from amd64 and arm64 machines.
+The output should change every few seconds, and you'll see that the app is being served from multiple hosts running amd64 and arm64 CPUs.
 
 ## Conclusions 
 
-The lower cost of ARM processors on Google Cloud offers an opportunity to reduce compute costs while maintaining performance for many workloads. The main challenge is the availability of software built for ARM. While most official Docker images have support for multiple architectures, you may find gaps. Using Kubernetes provides a way to save money where possible, and maintain compatibility where it's not. The increasing popularity of ARM and Docker's buildx toolkit will make it increasingly rare to encounter a workload which needs any special consideration at all. Those same tools will also enable your own applications to use ARM where it makes sense.
+The lower cost of ARM processors on Google Cloud offers an opportunity to reduce compute costs while maintaining or improving performance for many workloads. The main challenge is the availability of software built for ARM. While most official Docker images have support for multiple architectures, you may find gaps. Using Kubernetes provides a way to save money where possible, and maintain compatibility where it's not. The increasing popularity of ARM and Docker's buildx toolkit will make it increasingly rare to encounter a workload which needs any special consideration at all. Those same tools will also enable your own applications to use ARM where it makes sense.
 
 Compatibility aside, you may find some workloads work faster on arm64 or x86_64, in which case Kubernetes offers simple semantics for making sure those workloads run where they are most performant.
 
