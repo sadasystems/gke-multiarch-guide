@@ -6,3 +6,9 @@ gcloud container node-pools create arm \
     --num-nodes=3 \
     --node-version=1.23.6-gke.1700 \
     --zone=${ZONE}
+
+# Resize default pool down to 3 nodes.
+gcloud container clusters resize multiarch-${USER} \
+    --node-pool=default-pool \
+    --num-nodes=3 \
+    --zone=${ZONE}
