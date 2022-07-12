@@ -6,7 +6,7 @@ spec:
   selector:
     matchLabels:
       app: envspitter
-  replicas: 6
+  replicas: 4
   template:
     metadata:
       labels:
@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: envspitter
-        image: us-docker.pkg.dev/${PROJECT_ID}/envspitter-${USER}/envspitter:1.0
+        image: us-docker.pkg.dev/${PROJECT_ID}/envspitter-${LABUID}/envspitter:1.0
         env:
         - name: PORT
           value: "80"
@@ -25,7 +25,17 @@ spec:
         resources:
           limits:
             memory: "50Mi"
-            cpu: "1.5"
+            cpu: "1"
           requests:
             memory: "50Mi"
-            cpu: "1.5"
+            cpu: "1"
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - envspitter
+            topologyKey: kubernetes.io/hostname

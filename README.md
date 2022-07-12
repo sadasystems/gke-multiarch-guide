@@ -52,8 +52,11 @@ We also need to set a variable for later use:
 # Attempt to grab your current project. If this fails manually set the PROJECT_ID variable to your project id.
 export PROJECT_ID=$(gcloud config get-value project)
 
-# Same, set manually if this fails, for example us-central1-a
-export ZONE=$(gcloud config get-value compute/zone)
+# We'll be working in us-central1-a
+export ZONE=us-central1-a
+
+# A unique ID based on our username to uniquely identify our lab resources
+export LABUID=$(shasum <<< $USER | cut -c1-8)
 
 ```
 
@@ -63,7 +66,7 @@ First we'll provision a Google Kubernetes Engine (GKE) cluster:
 
 ```bash
 # Create a basic GKE cluster with 10 nodes to prescale the control plane.
-gcloud container clusters create multiarch-${USER} \
+gcloud container clusters create multiarch-${LABUID} \
     --machine-type=n1-standard-4 \
     --num-nodes=10 \
     --no-enable-shielded-nodes \
@@ -77,15 +80,15 @@ Next we'll add a node pool of `t2a-standard-4` machines (t2a is Google's ARM off
 ```bash
 # Add a node pool to our cluster. t2a machines must use Google Virtual NIC
 gcloud container node-pools create arm \
-    --cluster=multiarch-${USER} \
+    --cluster=multiarch-${LABUID} \
     --machine-type=t2a-standard-4 \
     --enable-gvnic \
     --num-nodes=3 \
     --node-version=1.23.6-gke.1700 \
     --zone=${ZONE}
 
-# Resize default pool down to 3 nodes.
-gcloud container clusters resize multiarch-${USER} \
+# Cluster should be warmed up, resize default pool down to 3 nodes.
+gcloud container clusters resize multiarch-${LABUID} \
     --node-pool=default-pool \
     --num-nodes=3 \
     --zone=${ZONE}
@@ -115,7 +118,7 @@ First we'll need somewhere to host our container image. To do this, let's create
 
 ```bash
 # Create a Docker Artifact Repository in multiple redundant US regions.
-gcloud artifacts repositories create envspitter-${USER} --repository-format=docker --location=us
+gcloud artifacts repositories create envspitter-${LABUID} --repository-format=docker --location=us
 
 # Log on to Google's docker registry
 gcloud auth configure-docker us-docker.pkg.dev
@@ -126,10 +129,10 @@ Now we build and push our Docker image:
 
 ```bash
 # Build the docker image
-docker build . -t us-docker.pkg.dev/${PROJECT_ID}/envspitter-${USER}/envspitter:1.0
+docker build . -t us-docker.pkg.dev/${PROJECT_ID}/envspitter-${LABUID}/envspitter:1.0
 
 # Push the docker image
-docker push us-docker.pkg.dev/${PROJECT_ID}/envspitter-${USER}/envspitter:1.0
+docker push us-docker.pkg.dev/${PROJECT_ID}/envspitter-${LABUID}/envspitter:1.0
 
 ```
 
@@ -151,12 +154,10 @@ Our application has been deployed, let's check on it:
 ```
 $ kubectl get pod  -o wide
 NAME                         READY   STATUS             RESTARTS     AGE   IP          NODE                                       NOMINATED NODE   READINESS GATES
-envspitter-7898df797f-2xf8q   0/1     CrashLoopBackOff   1 (9s ago)   13s   10.76.3.2   gke-multiarch-arm-4f67b11b-3rjq            <none>           <none>
-envspitter-7898df797f-2zmdr   1/1     Running            0            12s   10.76.1.9   gke-multiarch-default-pool-8ace7592-94x5   <none>           <none>
-envspitter-7898df797f-72w76   0/1     CrashLoopBackOff   1 (9s ago)   12s   10.76.5.3   gke-multiarch-arm-4f67b11b-bxnh            <none>           <none>
-envspitter-7898df797f-879vr   1/1     Running            0            12s   10.76.2.5   gke-multiarch-default-pool-8ace7592-072c   <none>           <none>
-envspitter-7898df797f-jd5c2   0/1     CrashLoopBackOff   1 (8s ago)   13s   10.76.4.3   gke-multiarch-arm-4f67b11b-l44s            <none>           <none>
-envspitter-7898df797f-r7s8v   1/1     Running            0            12s   10.76.0.5   gke-multiarch-default-pool-8ace7592-j4l0   <none>           <none>
+envspitter-5b6dd6dd47-b2q2b   0/1     CrashLoopBackOff   1 (2s ago)   4s    10.40.12.23   gke-multiarch-b8b9bfa3-arm-d1c499f7-ng1x            <none>           0/1
+envspitter-5b6dd6dd47-kkb9m   0/1     CrashLoopBackOff   1 (2s ago)   4s    10.40.10.14   gke-multiarch-b8b9bfa3-arm-d1c499f7-z7hb            <none>           0/1
+envspitter-5b6dd6dd47-qn45t   0/1     CrashLoopBackOff   1 (3s ago)   4s    10.40.11.16   gke-multiarch-b8b9bfa3-arm-d1c499f7-x585            <none>           1/1
+envspitter-5b6dd6dd47-x4hcl   1/1     Running            0            4s    10.40.3.26    gke-multiarch-b8b9bfa3-default-pool-1d21cf40-5fvn   <none>           0/1
 ```
 
 Looks like many of the pods are in a bad state.
@@ -199,17 +200,14 @@ Now let's check on our Pods.
 ```
 $ kubectl get pods -o wide
 NAME                          READY   STATUS    RESTARTS   AGE     IP          NODE                                       NOMINATED NODE   READINESS GATES
-envspitter-5d5df44c57-f88hx   0/1     Pending   0          2m38s   <none>      <none>                                     <none>           <none>
-envspitter-5d5df44c57-jtnk9   0/1     Pending   0          2m38s   <none>      <none>                                     <none>           <none>
-envspitter-5d5df44c57-mv5h4   0/1     Pending   0          2m37s   <none>      <none>                                     <none>           <none>
-envspitter-5d5df44c57-wgj57   1/1     Running   0          2m38s   10.76.2.6   gke-multiarch-default-pool-8ace7592-072c   <none>           <none>
-envspitter-749d4b99cc-l6699   0/1     Pending   0          5m29s   <none>      <none>                                     <none>           <none>
-envspitter-7898df797f-2zmdr   1/1     Running   0          9m49s   10.76.1.9   gke-multiarch-default-pool-8ace7592-94x5   <none>           <none>
-envspitter-7898df797f-879vr   1/1     Running   0          9m49s   10.76.2.5   gke-multiarch-default-pool-8ace7592-072c   <none>           <none>
-envspitter-7898df797f-r7s8v   1/1     Running   0          9m49s   10.76.0.5   gke-multiarch-default-pool-8ace7592-j4l0   <none>           <none>
+envspitter-59899589d9-7rxch   1/1     Running   0          9s    10.40.1.24   gke-multiarch-b8b9bfa3-default-pool-1d21cf40-6673   <none>           1/1
+envspitter-59899589d9-dcd2p   0/1     Pending   0          4s    <none>       <none>                                              <none>           0/1
+envspitter-59899589d9-hk226   0/1     Pending   0          4s    <none>       <none>                                              <none>           0/1
+envspitter-59899589d9-llr8t   1/1     Running   0          9s    10.40.5.24   gke-multiarch-b8b9bfa3-default-pool-1d21cf40-20vc   <none>           1/1
+envspitter-5b6dd6dd47-x4hcl   1/1     Running   0          74s   10.40.3.26   gke-multiarch-b8b9bfa3-default-pool-1d21cf40-5fvn   <none>           1/1
 ```
 
-Our pods are now off of the incompatible nodes, but some of the Pods are stuck pending because there aren't enough nodes compatible with our workload. Let's get it compatible.
+Our pods are now off of the incompatible nodes, but some of the Pods are stuck pending because there aren't enough nodes compatible with our workload. Let's get our workload compatible.
 
 ## Multiarch Builds
 
@@ -221,14 +219,14 @@ We previously created our container registry, so now we just need to submit our 
 
 ```bash
 # Submit our multiarch build to Cloud Build with a specific tag.
-gcloud builds submit --substitutions TAG_NAME=1.1,_USERNAME=${USER}
+gcloud builds submit --substitutions TAG_NAME=1.1,_LABUID=${LABUID}
 
 ```
 
 After the build completes, there should be images for amd64 and arm64 in the manifest for the envspitter:1.1 image.
 
 ```
-$ docker manifest inspect us-docker.pkg.dev/${PROJECT_ID}/envspitter-${USER}/envspitter:1.1
+$ docker manifest inspect us-docker.pkg.dev/${PROJECT_ID}/envspitter-${LABUID}/envspitter:1.1
 {
    "schemaVersion": 2,
    "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
@@ -261,7 +259,7 @@ Let's update our deployment with the new image:
 
 ```bash
 # Update the container image in our deployment to 1.1
-kubectl set image deployment/envspitter envspitter=us-docker.pkg.dev/${PROJECT_ID}/envspitter-${USER}/envspitter:1.1
+kubectl set image deployment/envspitter envspitter=us-docker.pkg.dev/${PROJECT_ID}/envspitter-${LABUID}/envspitter:1.1
 
 ```
 
@@ -278,12 +276,18 @@ Our pods should now be scheduled across all nodes.
 ```
 $ kubectl get pod -o wide
 NAME                          READY   STATUS    RESTARTS   AGE   IP          NODE                              NOMINATED NODE   READINESS GATES
-envspitter-7bb8b99f46-6ljn2   1/1     Running   0          6s    10.76.5.4   gke-multiarch-arm-4f67b11b-bxnh   <none>           <none>
-envspitter-7bb8b99f46-fxzg8   1/1     Running   0          2s    10.76.5.5   gke-multiarch-arm-4f67b11b-bxnh   <none>           <none>
-envspitter-7bb8b99f46-hgj4d   1/1     Running   0          6s    10.76.3.3   gke-multiarch-arm-4f67b11b-3rjq   <none>           <none>
-envspitter-7bb8b99f46-qvhcg   1/1     Running   0          2s    10.76.4.5   gke-multiarch-arm-4f67b11b-l44s   <none>           <none>
-envspitter-7bb8b99f46-qxwgt   1/1     Running   0          6s    10.76.4.4   gke-multiarch-arm-4f67b11b-l44s   <none>           <none>
-envspitter-7bb8b99f46-swrpx   1/1     Running   0          2s    10.76.3.4   gke-multiarch-arm-4f67b11b-3rjq   <none>           <none>
+envspitter-5fdbfcc76-292rb   1/1     Running   0          8s    10.40.3.27    gke-multiarch-b8b9bfa3-default-pool-1d21cf40-5fvn   <none>           1/1
+envspitter-5fdbfcc76-lwbnf   1/1     Running   0          16s   10.40.11.17   gke-multiarch-b8b9bfa3-arm-d1c499f7-x585            <none>           1/1
+envspitter-5fdbfcc76-pnhzc   1/1     Running   0          10s   10.40.10.15   gke-multiarch-b8b9bfa3-arm-d1c499f7-z7hb            <none>           1/1
+envspitter-5fdbfcc76-ssx7l   1/1     Running   0          16s   10.40.12.24   gke-multiarch-b8b9bfa3-arm-d1c499f7-ng1x            <none>           1/1
+```
+
+Now that we're compatible with all nodes in the cluster, we might as well scale our deployment up.
+
+```bash
+# Scale our deployment up to take advantage of our free nodes
+kubectl scale deployment envspitter --replicas=6
+
 ```
 
 ### Testing our Application
@@ -313,10 +317,10 @@ To delete the resources created in this guide:
 
 ```bash
 # Delete the GKE cluster
-gcloud container clusters delete multiarch-${USER} --zone=${ZONE}
+gcloud container clusters delete multiarch-${LABUID} --zone=${ZONE}
 
 # Delete the Docker registry
-gcloud artifacts repositories delete envspitter-${USER} --location=us
+gcloud artifacts repositories delete envspitter-${LABUID} --location=us
 
 ```
 
