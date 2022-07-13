@@ -46,7 +46,7 @@ git clone https://github.com/sadasystems/gke-multiarch-guide
 cd gke-multiarch-guide
 ```
 
-We also need to set a variable for later use:
+We also need to set some variables for later use:
 
 ```bash
 # Attempt to grab your current project. If this fails manually set the PROJECT_ID variable to your project id.

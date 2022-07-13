@@ -32,7 +32,7 @@ git clone https://github.com/sadasystems/gke-multiarch-guide
 cd gke-multiarch-guide
 ```
 
-We also need to set a variable for later use:
+We also need to set some variables for later use:
 
 ```bash
 undivert({{scripts/variables.sh}})
