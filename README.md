@@ -1,7 +1,7 @@
 
 # Working with ARM64 Machines on Google Kubernetes Engine
 
-Google has recently [announced](http://cloud.google.com/blog) their ARM CPU machines types. Kubernetes has had support for ARM machines for some time (as evidenced by the [proliferation](https://www.google.com/search?as_q=kubernetes+raspberry+pi+cluster&tbm=isch) of Raspberry Pi clusters), however running a mixed architecture cluster can pose some challenges.
+Google has recently [announced](https://cloud.google.com/blog/products/compute/tau-t2a-is-first-compute-engine-vm-on-an-arm-chip) their ARM CPU machines types. Kubernetes has had support for ARM machines for some time (as evidenced by the [proliferation](https://www.google.com/search?as_q=kubernetes+raspberry+pi+cluster&tbm=isch) of Raspberry Pi clusters), however running a mixed architecture cluster can pose some challenges.
 
 This guide covers how to run CPU-specific workloads on mixed clusters, and provides an example of how to make workloads CPU-agnostic.
 
@@ -326,7 +326,7 @@ gcloud artifacts repositories delete envspitter-${LABUID} --location=us
 
 ## Further Reading
 
-- [Google Cloud Announces ARM Machine Blog Thing](http://cloud.google.com)
+- [Google Cloud: Arm Workloads on GKE](https://cloud.google.com/kubernetes-engine/docs/concepts/arm-on-gke)
 - [Docker: Multi-CPU Architecture Support](https://docs.docker.com/desktop/multi-arch/)
 - [GKE Docs](https://cloud.google.com/kubernetes-engine/docs/)
 - [Kubernetes up and Running](http://shop.oreilly.com/product/0636920043874.do)
