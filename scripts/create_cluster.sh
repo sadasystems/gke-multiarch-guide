@@ -3,5 +3,5 @@ gcloud container clusters create multiarch-${LABUID} \
     --machine-type=n1-standard-4 \
     --num-nodes=10 \
     --no-enable-shielded-nodes \
-    --cluster-version=1.23.6-gke.1700 \
+    --cluster-version=latest \
     --zone=${ZONE}

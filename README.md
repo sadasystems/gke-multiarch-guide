@@ -70,7 +70,7 @@ gcloud container clusters create multiarch-${LABUID} \
     --machine-type=n1-standard-4 \
     --num-nodes=10 \
     --no-enable-shielded-nodes \
-    --cluster-version=1.23.6-gke.1700 \
+    --cluster-version=latest \
     --zone=${ZONE}
 
 ```
@@ -84,7 +84,7 @@ gcloud container node-pools create arm \
     --machine-type=t2a-standard-4 \
     --enable-gvnic \
     --num-nodes=3 \
-    --node-version=1.23.6-gke.1700 \
+    --node-version=latest \
     --zone=${ZONE}
 
 # Cluster should be warmed up, resize default pool down to 3 nodes.
